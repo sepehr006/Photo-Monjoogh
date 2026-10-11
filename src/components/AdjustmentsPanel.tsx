@@ -33,8 +33,6 @@ interface AdjustmentsPanelProps {
   onSelectVariant: (variantKey: 'under200kb' | 'highQuality') => void;
   onToggleCompare: (isComparing: boolean) => void;
   isComparing: boolean;
-  onFocusPreview?: () => void;
-  onFocusCrop?: () => void;
 }
 
 export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
@@ -43,8 +41,6 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
   onSelectVariant,
   onToggleCompare,
   isComparing,
-  onFocusPreview,
-  onFocusCrop,
 }) => {
   const [activeTab, setActiveTab] = useState<'export' | 'color'>('export');
 
@@ -78,7 +74,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
               : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
           }`}
         >
-          <Download className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+          <Download className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
           <span>خروجی و دانلود</span>
         </button>
 
@@ -90,7 +86,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
               : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
           }`}
         >
-          <Sliders className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+          <Sliders className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
           <span>رنگ و نور</span>
         </button>
       </div>
@@ -100,27 +96,14 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
         {/* ================= TAB 1: EXPORT & COMPRESSION ================= */}
         {activeTab === 'export' && (
           <div className="space-y-5">
-            {/* WebP Status & Center Focus Banner */}
+            {/* WebP Status & Size Telemetry */}
             <div className="p-4 rounded-xl bg-neutral-50 dark:bg-neutral-900/80 border border-neutral-200 dark:border-neutral-800 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-neutral-900 dark:text-neutral-200 flex items-center gap-1.5">
-                  <Maximize className="w-3.5 h-3.5 text-amber-500" />
+                  <Maximize className="w-3.5 h-3.5 text-sky-500" />
                   پیش‌نمایش خروجی WebP
                 </span>
               </div>
-
-              {onFocusPreview && (
-                <div className="p-2 rounded-lg bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40">
-                  <button
-                    type="button"
-                    onClick={onFocusPreview}
-                    className="w-full py-2 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 active:scale-98 text-neutral-950 text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>مشاهده پیش‌نمایش در وسط صفحه</span>
-                  </button>
-                </div>
-              )}
 
               {/* Size & Dimension Telemetry */}
               {selectedVariant && (
@@ -131,7 +114,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                       className={`font-bold tabular-nums ${
                         selectedVariant.isUnder200Kb
                           ? 'text-emerald-700 dark:text-emerald-400'
-                          : 'text-amber-700 dark:text-amber-400'
+                          : 'text-sky-700 dark:text-sky-400'
                       }`}
                     >
                       {selectedVariant.sizeKb} کیلوبایت ({formatFileSize(selectedVariant.sizeBytes)})
@@ -158,7 +141,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                     onClick={() => onSelectVariant('under200kb')}
                     className={`p-2.5 rounded-lg border text-right transition-all cursor-pointer ${
                       activeVariant === 'under200kb'
-                        ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-500 text-neutral-900 dark:text-white ring-1 ring-amber-500/40'
+                        ? 'bg-sky-50 dark:bg-sky-500/10 border-sky-500 text-neutral-900 dark:text-white ring-1 ring-sky-500/40'
                         : 'bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300 dark:hover:border-neutral-700'
                     }`}
                   >
@@ -180,15 +163,15 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                     onClick={() => onSelectVariant('highQuality')}
                     className={`p-2.5 rounded-lg border text-right transition-all cursor-pointer ${
                       activeVariant === 'highQuality'
-                        ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-500 text-neutral-900 dark:text-white ring-1 ring-amber-500/40'
+                        ? 'bg-sky-50 dark:bg-sky-500/10 border-sky-500 text-neutral-900 dark:text-white ring-1 ring-sky-500/40'
                         : 'bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300 dark:hover:border-neutral-700'
                     }`}
                   >
-                    <div className="text-[11px] font-bold text-amber-700 dark:text-neutral-200 mb-1 flex items-center justify-between">
+                    <div className="text-[11px] font-bold text-sky-700 dark:text-neutral-200 mb-1 flex items-center justify-between">
                       <span>کیفیت بالا (ابعاد کامل)</span>
                       {activeVariant === 'highQuality' && <CheckCircle2 className="w-3.5 h-3.5" />}
                     </div>
-                    <div className="text-xs font-bold text-amber-800 dark:text-amber-300 tabular-nums">
+                    <div className="text-xs font-bold text-sky-800 dark:text-sky-300 tabular-nums">
                       {exportResult.secondary.sizeKb} KB
                     </div>
                     <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-bold mt-0.5">
@@ -204,7 +187,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
               type="button"
               disabled={!selectedVariant}
               onClick={handleDownload}
-              className="w-full py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-98 text-neutral-950 font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 px-4 rounded-xl bg-sky-400 hover:bg-sky-300 active:scale-98 text-neutral-950 font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <Download className="w-4 h-4 text-neutral-950" />
               <span>دانلود فایل WebP (نسبت ۳:۴)</span>
@@ -248,7 +231,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                   onClick={() => onUpdateColors({ ...colorAdjustments, style: 'natural' })}
                   className={`py-2 text-xs rounded-lg font-bold transition-colors cursor-pointer ${
                     colorAdjustments.style === 'natural'
-                      ? 'bg-white dark:bg-neutral-800 text-amber-700 dark:text-amber-300 shadow-xs'
+                      ? 'bg-white dark:bg-neutral-800 text-sky-700 dark:text-sky-300 shadow-xs'
                       : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
                   }`}
                 >
@@ -259,7 +242,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                   onClick={() => onUpdateColors({ ...colorAdjustments, style: 'enhanced' })}
                   className={`py-2 text-xs rounded-lg font-bold transition-colors cursor-pointer ${
                     colorAdjustments.style === 'enhanced'
-                      ? 'bg-white dark:bg-neutral-800 text-amber-700 dark:text-amber-300 shadow-xs'
+                      ? 'bg-white dark:bg-neutral-800 text-sky-700 dark:text-sky-300 shadow-xs'
                       : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'
                   }`}
                 >
@@ -284,7 +267,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                   })
                 }
                 className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                  colorAdjustments.autoCorrect ? 'bg-amber-400' : 'bg-neutral-300 dark:bg-neutral-700'
+                  colorAdjustments.autoCorrect ? 'bg-sky-400' : 'bg-neutral-300 dark:bg-neutral-700'
                 }`}
               >
                 <div
@@ -319,7 +302,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                       brightness: parseInt(e.target.value, 10),
                     })
                   }
-                  className="w-full accent-amber-500 cursor-pointer"
+                  className="w-full accent-sky-500 cursor-pointer"
                 />
               </div>
 
@@ -345,7 +328,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                       contrast: parseInt(e.target.value, 10),
                     })
                   }
-                  className="w-full accent-amber-500 cursor-pointer"
+                  className="w-full accent-sky-500 cursor-pointer"
                 />
               </div>
 
@@ -371,7 +354,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                       saturation: parseInt(e.target.value, 10),
                     })
                   }
-                  className="w-full accent-amber-500 cursor-pointer"
+                  className="w-full accent-sky-500 cursor-pointer"
                 />
               </div>
 
@@ -397,7 +380,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                       warmth: parseInt(e.target.value, 10),
                     })
                   }
-                  className="w-full accent-amber-500 cursor-pointer"
+                  className="w-full accent-sky-500 cursor-pointer"
                 />
               </div>
             </div>
@@ -421,7 +404,7 @@ export const AdjustmentsPanel: React.FC<AdjustmentsPanelProps> = ({
                 onTouchEnd={() => onToggleCompare(false)}
                 className={`py-2 px-3 rounded-lg border text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                   isComparing
-                    ? 'bg-amber-400 text-neutral-950 border-amber-400'
+                    ? 'bg-sky-400 text-neutral-950 border-sky-400'
                     : 'border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
                 }`}
               >

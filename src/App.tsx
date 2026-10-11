@@ -15,7 +15,6 @@ import { UploadDropzone } from './components/UploadDropzone';
 import { PhotoQueue } from './components/PhotoQueue';
 import { CropWorkspace } from './components/CropWorkspace';
 import { AdjustmentsPanel } from './components/AdjustmentsPanel';
-import { HostingGuideModal } from './components/HostingGuideModal';
 import { RatioInfoModal } from './components/RatioInfoModal';
 
 function AppContent() {
@@ -23,7 +22,6 @@ function AppContent() {
   const [activePhotoId, setActivePhotoId] = useState<string | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<'preview' | 'crop'>('preview');
 
-  const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
   const [isRatioInfoOpen, setIsRatioInfoOpen] = useState<boolean>(false);
   const [isComparing, setIsComparing] = useState<boolean>(false);
 
@@ -215,7 +213,7 @@ function AppContent() {
   };
 
   return (
-    <div className="h-screen max-h-screen bg-neutral-100 dark:bg-[#0d0f15] text-neutral-800 dark:text-neutral-100 flex flex-col overflow-hidden font-sans selection:bg-amber-500/20 selection:text-amber-700 dark:selection:text-amber-200 transition-colors duration-200">
+    <div className="h-screen max-h-screen bg-neutral-100 dark:bg-[#0d0f15] text-neutral-800 dark:text-neutral-100 flex flex-col overflow-hidden font-sans selection:bg-sky-500/20 selection:text-sky-700 dark:selection:text-sky-200 transition-colors duration-200">
       {/* Hidden File Input for header trigger */}
       <input
         ref={fileInputRef}
@@ -233,7 +231,6 @@ function AppContent() {
 
       {/* Top Bar Contract (1 Row, 3 Zones) */}
       <Header
-        onOpenGuide={() => setIsGuideOpen(true)}
         onOpenRatioInfo={() => setIsRatioInfoOpen(true)}
         onTriggerUpload={() => fileInputRef.current?.click()}
         photosCount={photos.length}
@@ -282,8 +279,6 @@ function AppContent() {
                 onSelectVariant={handleSelectVariant}
                 onToggleCompare={setIsComparing}
                 isComparing={isComparing}
-                onFocusPreview={() => setWorkspaceMode('preview')}
-                onFocusCrop={() => setWorkspaceMode('crop')}
               />
             )}
           </div>
@@ -291,11 +286,6 @@ function AppContent() {
       </main>
 
       {/* Modals */}
-      <HostingGuideModal
-        isOpen={isGuideOpen}
-        onClose={() => setIsGuideOpen(false)}
-      />
-
       <RatioInfoModal
         isOpen={isRatioInfoOpen}
         onClose={() => setIsRatioInfoOpen(false)}

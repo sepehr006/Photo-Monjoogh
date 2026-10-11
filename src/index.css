@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@theme {
+  --color-sky-50: #edf7ff;
+  --color-sky-100: #d6eeff;
+  --color-sky-200: #b3e1ff;
+  --color-sky-300: #66c2ff;
+  --color-sky-400: #0096ff;
+  --color-sky-500: #0096ff;
+  --color-sky-600: #007dde;
+  --color-sky-700: #0063b3;
+  --color-sky-800: #004987;
+  --color-sky-900: #00315c;
+  --color-sky-950: #001e3d;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {

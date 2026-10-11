@@ -302,7 +302,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
               onClick={() => setMode('preview')}
               className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeMode === 'preview'
-                  ? 'bg-amber-400 text-neutral-950 shadow-sm'
+                  ? 'bg-sky-400 text-neutral-950 shadow-sm'
                   : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
               }`}
             >
@@ -318,7 +318,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
               onClick={() => setMode('crop')}
               className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeMode === 'crop'
-                  ? 'bg-amber-400 text-neutral-950 shadow-sm'
+                  ? 'bg-sky-400 text-neutral-950 shadow-sm'
                   : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
               }`}
             >
@@ -333,10 +333,10 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={applyAutoSubjectCrop}
-                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 border border-amber-500/30 transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-300 hover:bg-sky-500/25 border border-sky-500/30 transition-colors flex items-center gap-1 cursor-pointer"
                 title="تشخیص هوشمند مدل و کادربندی پیشنهادی"
               >
-                <Sparkles className="w-3 h-3 text-amber-500" />
+                <Sparkles className="w-3 h-3 text-sky-500" />
                 <span>هوشمند</span>
               </button>
 
@@ -405,7 +405,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
         <div className="flex items-center gap-3">
           {activeMode === 'crop' ? (
             <div className="hidden sm:flex items-center gap-2 text-xs text-neutral-700 dark:text-neutral-300 tabular-nums font-bold">
-              <span className="text-amber-600 dark:text-amber-400">
+              <span className="text-sky-600 dark:text-sky-400">
                 {Math.round(photo.cropRect.width)} × {Math.round(photo.cropRect.height)}
               </span>
               <span className="text-neutral-400">px</span>
@@ -418,7 +418,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
               <span className="text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800/40">
                 {selectedVariant.width} × {selectedVariant.height} px
               </span>
-              <span className="text-amber-700 dark:text-amber-400">
+              <span className="text-sky-700 dark:text-sky-400">
                 {selectedVariant.sizeKb} KB
               </span>
             </div>
@@ -435,7 +435,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
             </button>
             <button
               onClick={() => setZoomLevel(1)}
-              className="text-[11px] px-1 text-neutral-700 dark:text-neutral-300 font-bold hover:text-amber-500 cursor-pointer"
+              className="text-[11px] px-1 text-neutral-700 dark:text-neutral-300 font-bold hover:text-sky-500 cursor-pointer"
               title="بازنشانی اندازه کادر"
             >
               {Math.round(zoomLevel * 100)}%
@@ -453,8 +453,8 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
 
       {/* Warning Notice if Subject is wider/taller than 3:4 */}
       {activeMode === 'crop' && photo.detectionResult?.fitWarning && (
-        <div className="bg-amber-100 dark:bg-amber-950/40 border-b border-amber-300 dark:border-amber-800/40 px-4 py-1.5 flex items-center gap-2 text-xs text-amber-900 dark:text-amber-200 shrink-0">
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+        <div className="bg-sky-100 dark:bg-sky-950/40 border-b border-sky-300 dark:border-sky-800/40 px-4 py-1.5 flex items-center gap-2 text-xs text-sky-900 dark:text-sky-200 shrink-0">
+          <AlertTriangle className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
           <span>{photo.detectionResult.fitWarning}</span>
         </div>
       )}
@@ -470,7 +470,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
         >
           {/* Comparison indicator banner */}
           {isComparing && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-amber-400 text-neutral-950 font-bold text-xs shadow-lg flex items-center gap-2 border border-amber-500 animate-pulse pointer-events-none">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-sky-400 text-neutral-950 font-bold text-xs shadow-lg flex items-center gap-2 border border-sky-500 animate-pulse pointer-events-none">
               <Eye className="w-4 h-4 text-neutral-950" />
               <span>حالت مقایسه: نمایش تصویر خام اولیه (بدون افکت و روتوش)</span>
             </div>
@@ -499,12 +499,12 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
                 {/* Overlaid Badges on Image */}
                 <div className="absolute top-3 right-3 flex items-center gap-1.5">
                   {isComparing ? (
-                    <span className="bg-amber-400 text-neutral-950 text-xs font-bold px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
+                    <span className="bg-sky-400 text-neutral-950 text-xs font-bold px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
                       <Eye className="w-3.5 h-3.5" />
                       عکس خام اولیه
                     </span>
                   ) : (
-                    <span className="bg-black/75 backdrop-blur-md text-amber-300 text-xs font-bold px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
+                    <span className="bg-black/75 backdrop-blur-md text-sky-300 text-xs font-bold px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                       پیش‌نمایش خروجی WebP (۳:۴)
                     </span>
@@ -518,7 +518,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
                   <span className="text-neutral-400">·</span>
                   <span
                     className={
-                      selectedVariant.isUnder200Kb ? 'text-emerald-400' : 'text-amber-300'
+                      selectedVariant.isUnder200Kb ? 'text-emerald-400' : 'text-sky-300'
                     }
                   >
                     {selectedVariant.sizeKb} KB
@@ -527,7 +527,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center text-center p-8 bg-white/80 dark:bg-neutral-900/80 rounded-2xl border border-neutral-300 dark:border-neutral-700">
-                <div className="w-10 h-10 rounded-full border-4 border-amber-400 border-t-transparent animate-spin mb-4" />
+                <div className="w-10 h-10 rounded-full border-4 border-sky-400 border-t-transparent animate-spin mb-4" />
                 <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">
                   در حال آماده‌سازی و بهینه‌سازی عکس...
                 </span>
@@ -543,7 +543,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
                 onClick={() => setMode('crop')}
                 className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 transition-colors flex items-center gap-1.5 cursor-pointer"
               >
-                <CropIcon className="w-3.5 h-3.5 text-amber-500" />
+                <CropIcon className="w-3.5 h-3.5 text-sky-500" />
                 <span>تنظیم کادر برش (کراپ)</span>
               </button>
 
@@ -562,7 +562,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
                 type="button"
                 disabled={!selectedVariant}
                 onClick={handleQuickDownload}
-                className="px-4 py-1.5 text-xs font-bold rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-neutral-950 transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-1.5 text-xs font-bold rounded-xl bg-sky-400 hover:bg-sky-300 active:scale-95 text-neutral-950 transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5 text-neutral-950" />
                 <span>دانلود فوری فایل WebP</span>
@@ -586,7 +586,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
         >
           {/* Comparison indicator */}
           {isComparing && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-amber-400 text-neutral-950 font-bold text-xs shadow-lg flex items-center gap-2 border border-amber-500 animate-pulse pointer-events-none">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full bg-sky-400 text-neutral-950 font-bold text-xs shadow-lg flex items-center gap-2 border border-sky-500 animate-pulse pointer-events-none">
               <span className="w-2 h-2 rounded-full bg-neutral-950 animate-ping" />
               <span>حالت مقایسه: نمایش تصویر خام اولیه (بدون افکت)</span>
             </div>
@@ -661,25 +661,25 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
                 cursor: dragMode === 'move' ? 'grabbing' : 'grab',
               }}
               onPointerDown={(e) => handlePointerDown('move', e)}
-              className="border-2 border-amber-400 ring-2 ring-black/50 group shadow-2xl transition-shadow select-none"
+              className="border-2 border-sky-400 ring-2 ring-black/50 group shadow-2xl transition-shadow select-none"
             >
               {/* Rule of Thirds Grid Lines */}
               <div className="absolute inset-0 pointer-events-none opacity-40">
-                <div className="w-full h-1/3 border-b border-dashed border-amber-300/70" />
-                <div className="w-full h-2/3 border-b border-dashed border-amber-300/70" />
+                <div className="w-full h-1/3 border-b border-dashed border-sky-300/70" />
+                <div className="w-full h-2/3 border-b border-dashed border-sky-300/70" />
                 <div
-                  className="h-full border-r border-dashed border-amber-300/70"
+                  className="h-full border-r border-dashed border-sky-300/70"
                   style={{ position: 'absolute', top: 0, left: '33.333%' }}
                 />
                 <div
-                  className="h-full border-r border-dashed border-amber-300/70"
+                  className="h-full border-r border-dashed border-sky-300/70"
                   style={{ position: 'absolute', top: 0, left: '66.666%' }}
                 />
               </div>
 
               {/* Center Move Icon Indicator */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-60 transition-opacity">
-                <div className="p-2 rounded-full bg-black/75 text-amber-300 shadow-xl">
+                <div className="p-2 rounded-full bg-black/75 text-sky-300 shadow-xl">
                   <Move className="w-5 h-5" />
                 </div>
               </div>
@@ -687,49 +687,49 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
               {/* 4 Corner Handles (NW, NE, SW, SE) */}
               <div
                 onPointerDown={(e) => handlePointerDown('nw', e)}
-                className="absolute -top-2.5 -left-2.5 w-5 h-5 bg-amber-400 border-2 border-neutral-900 rounded-md cursor-nwse-resize shadow-lg hover:scale-125 transition-transform"
+                className="absolute -top-2.5 -left-2.5 w-5 h-5 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nwse-resize shadow-lg hover:scale-125 transition-transform"
                 title="تغییر اندازه از گوشه بالا-چپ"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('ne', e)}
-                className="absolute -top-2.5 -right-2.5 w-5 h-5 bg-amber-400 border-2 border-neutral-900 rounded-md cursor-nesw-resize shadow-lg hover:scale-125 transition-transform"
+                className="absolute -top-2.5 -right-2.5 w-5 h-5 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nesw-resize shadow-lg hover:scale-125 transition-transform"
                 title="تغییر اندازه از گوشه بالا-راست"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('sw', e)}
-                className="absolute -bottom-2.5 -left-2.5 w-5 h-5 bg-amber-400 border-2 border-neutral-900 rounded-md cursor-nesw-resize shadow-lg hover:scale-125 transition-transform"
+                className="absolute -bottom-2.5 -left-2.5 w-5 h-5 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nesw-resize shadow-lg hover:scale-125 transition-transform"
                 title="تغییر اندازه از گوشه پایین-چپ"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('se', e)}
-                className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-amber-400 border-2 border-neutral-900 rounded-md cursor-nwse-resize shadow-lg hover:scale-125 transition-transform"
+                className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nwse-resize shadow-lg hover:scale-125 transition-transform"
                 title="تغییر اندازه از گوشه پایین-راست"
               />
 
               {/* 4 Edge Handles (N, S, E, W) */}
               <div
                 onPointerDown={(e) => handlePointerDown('n', e)}
-                className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-3.5 bg-amber-400 border-2 border-neutral-900 rounded-full cursor-ns-resize shadow-md hover:scale-110 transition-transform"
+                className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-3.5 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ns-resize shadow-md hover:scale-110 transition-transform"
                 title="تغییر اندازه از لبه بالایی"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('s', e)}
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-8 h-3.5 bg-amber-400 border-2 border-neutral-900 rounded-full cursor-ns-resize shadow-md hover:scale-110 transition-transform"
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-8 h-3.5 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ns-resize shadow-md hover:scale-110 transition-transform"
                 title="تغییر اندازه از لبه پایینی"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('e', e)}
-                className="absolute -right-2 top-1/2 -translate-y-1/2 w-3.5 h-8 bg-amber-400 border-2 border-neutral-900 rounded-full cursor-ew-resize shadow-md hover:scale-110 transition-transform"
+                className="absolute -right-2 top-1/2 -translate-y-1/2 w-3.5 h-8 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ew-resize shadow-md hover:scale-110 transition-transform"
                 title="تغییر اندازه از لبه راست"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('w', e)}
-                className="absolute -left-2 top-1/2 -translate-y-1/2 w-3.5 h-8 bg-amber-400 border-2 border-neutral-900 rounded-full cursor-ew-resize shadow-md hover:scale-110 transition-transform"
+                className="absolute -left-2 top-1/2 -translate-y-1/2 w-3.5 h-8 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ew-resize shadow-md hover:scale-110 transition-transform"
                 title="تغییر اندازه از لبه چپ"
               />
 
               {/* Edge Pill Tag: 3:4 */}
-              <div className="absolute bottom-2 right-2 bg-neutral-950/90 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md border border-neutral-700 pointer-events-none shadow-md">
+              <div className="absolute bottom-2 right-2 bg-neutral-950/90 text-sky-300 text-[10px] font-bold px-2 py-0.5 rounded-md border border-neutral-700 pointer-events-none shadow-md">
                 نسبت پرتره ۳:۴
               </div>
             </div>
@@ -739,7 +739,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
           <button
             type="button"
             onClick={() => setMode('preview')}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-neutral-950 font-bold text-xs shadow-xl flex items-center gap-2 border border-amber-500 cursor-pointer transition-all"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 px-5 py-2 rounded-xl bg-sky-400 hover:bg-sky-300 active:scale-95 text-neutral-950 font-bold text-xs shadow-xl flex items-center gap-2 border border-sky-500 cursor-pointer transition-all"
           >
             <Maximize className="w-4 h-4 text-neutral-950" />
             <span>مشاهده پیش‌نمایش خروجی WebP</span>

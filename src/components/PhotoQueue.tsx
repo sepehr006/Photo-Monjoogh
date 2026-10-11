@@ -38,7 +38,7 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
         </div>
         <button
           onClick={onAddMore}
-          className="text-xs text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 font-bold px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 transition-colors cursor-pointer"
+          className="text-xs text-sky-700 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-bold px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 transition-colors cursor-pointer"
         >
           + افزودن عکس
         </button>
@@ -61,7 +61,7 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
               onClick={() => onSelectPhoto(item.id)}
               className={`p-2.5 rounded-xl border transition-all cursor-pointer relative group flex items-center gap-3 ${
                 isActive
-                  ? 'bg-amber-50/70 dark:bg-neutral-800/90 border-amber-500 shadow-xs ring-1 ring-amber-500/30'
+                  ? 'bg-sky-50/70 dark:bg-neutral-800/90 border-sky-500 shadow-xs ring-1 ring-sky-500/30'
                   : 'bg-neutral-50 dark:bg-neutral-900/60 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800/40'
               }`}
             >
@@ -84,7 +84,7 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
                 </div>
 
                 {isProcessing && (
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-amber-400">
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-sky-400">
                     <Loader2 className="w-4 h-4 animate-spin" />
                   </div>
                 )}
@@ -120,7 +120,7 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
                     </span>
                   )}
                   {isProcessing && (
-                    <span className="text-amber-700 dark:text-amber-400 flex items-center gap-1 font-bold">
+                    <span className="text-sky-700 dark:text-sky-400 flex items-center gap-1 font-bold">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       در حال پردازش...
                     </span>

@@ -7,14 +7,12 @@ import { Sparkles, HelpCircle, ShieldCheck, Upload, Sun, Moon } from 'lucide-rea
 import { useTheme } from '../context/ThemeContext';
 
 interface HeaderProps {
-  onOpenGuide: () => void;
   onOpenRatioInfo: () => void;
   onTriggerUpload: () => void;
   photosCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  onOpenGuide,
   onOpenRatioInfo,
   onTriggerUpload,
   photosCount,
@@ -26,23 +24,12 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Zone 1: Single text element wordmark */}
       <div className="flex items-center gap-3">
         <span className="text-lg md:text-xl font-bold tracking-tight text-neutral-900 dark:text-white flex items-center gap-2">
-          <span className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">
+          <span className="w-7 h-7 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center text-xs font-bold">
             3:4
           </span>
           Edit by Sepehr
         </span>
       </div>
-
-      {/* Zone 2: Navigation / Info triggers */}
-      <nav className="hidden lg:flex items-center gap-6 text-xs text-neutral-600 dark:text-neutral-400">
-        <button
-          onClick={onOpenGuide}
-          className="transition-colors flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300 font-medium"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          راهنمای خروجی و بارگذاری روی هاست
-        </button>
-      </nav>
 
       {/* Zone 3: Day/Night Theme Toggle & Primary Action */}
       <div className="flex items-center gap-2.5">
@@ -56,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           {theme === 'dark' ? (
             <>
-              <Sun className="w-4 h-4 text-amber-400" />
+              <Sun className="w-4 h-4 text-sky-400" />
               <span className="hidden sm:inline font-medium">حالت روز</span>
             </>
           ) : (
@@ -68,16 +55,8 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <button
-          onClick={onOpenGuide}
-          className="lg:hidden p-2 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-          title="راهنمای استقرار روی هاست"
-        >
-          <HelpCircle className="w-4 h-4" />
-        </button>
-
-        <button
           onClick={onTriggerUpload}
-          className="px-3.5 py-1.5 text-xs font-semibold text-neutral-900 bg-amber-400 hover:bg-amber-300 active:scale-95 rounded-xl transition-all flex items-center gap-2 shadow-sm whitespace-nowrap cursor-pointer"
+          className="px-3.5 py-1.5 text-xs font-semibold text-neutral-900 bg-sky-400 hover:bg-sky-300 active:scale-95 rounded-xl transition-all flex items-center gap-2 shadow-sm whitespace-nowrap cursor-pointer"
         >
           <Upload className="w-3.5 h-3.5 text-neutral-900" />
           <span>افزودن عکس</span>
