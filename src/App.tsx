@@ -16,6 +16,8 @@ import { PhotoQueue } from './components/PhotoQueue';
 import { CropWorkspace } from './components/CropWorkspace';
 import { AdjustmentsPanel } from './components/AdjustmentsPanel';
 import { RatioInfoModal } from './components/RatioInfoModal';
+import { MobileControls } from './components/MobileControls';
+import { MobilePhotoStrip } from './components/MobilePhotoStrip';
 
 function AppContent() {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
@@ -31,127 +33,98 @@ function AppContent() {
   // Active photo object
   const activePhoto = photos.find((p) => p.id === activePhotoId) || null;
 
-  // Process incoming files (HEIC, JPG, JPEG)
+  // Process incoming files
   const handleFilesSelected = async (files: File[]) => {
+    if (files.length === 0) return;
+
     for (const file of files) {
-      const tempId = `photo_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      try {
+        const loaded = await validateAndLoadImage(file);
+        const id = `photo-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        const detectionResult = detectSubjectsAndSuggestCrop(loaded.imageElement);
 
-      const newItem: PhotoItem = {
-        id: tempId,
-        file,
-        originalName: file.name,
-        originalExtension: file.name.split('.').pop()?.toLowerCase() || 'jpg',
-        fileSizeBytes: file.size,
-        originalWidth: 0,
-        originalHeight: 0,
-        imageElement: null,
-        objectUrl: '',
-        status: 'decoding',
-        cropRect: { x: 0, y: 0, width: 300, height: 400 },
-        colorAdjustments: { ...DEFAULT_COLOR_ADJUSTMENTS },
-        activeVariant: 'under200kb',
-      };
+        const newPhotoItem: PhotoItem = {
+          id,
+          file,
+          originalName: loaded.originalName,
+          originalExtension: loaded.originalExtension,
+          fileSizeBytes: loaded.fileSizeBytes,
+          originalWidth: loaded.width,
+          originalHeight: loaded.height,
+          objectUrl: loaded.objectUrl,
+          imageElement: loaded.imageElement,
+          cropRect: detectionResult.suggestedCrop,
+          detectionResult,
+          selectedSubjectId: detectionResult.subjects[0]?.id,
+          colorAdjustments: { ...DEFAULT_COLOR_ADJUSTMENTS },
+          status: 'decoding',
+          activeVariant: 'under200kb',
+        };
 
-      setPhotos((prev) => [...prev, newItem]);
-      setActivePhotoId(tempId);
+        setPhotos((prev) => [...prev, newPhotoItem]);
 
-      // Async validation & detection
-      processNewPhoto(tempId, file);
+        if (!activePhotoId) {
+          setActivePhotoId(id);
+        }
+
+        triggerPipelineRender(id, newPhotoItem);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'نامشخص';
+        console.error(`Error loading image ${file.name}:`, err);
+        const errorItem: PhotoItem = {
+          id: `error-${Date.now()}-${Math.random()}`,
+          file,
+          originalName: file.name,
+          originalExtension: file.name.split('.').pop() || '',
+          fileSizeBytes: file.size,
+          originalWidth: 0,
+          originalHeight: 0,
+          objectUrl: '',
+          imageElement: null as unknown as HTMLImageElement,
+          cropRect: { x: 0, y: 0, width: 0, height: 0 },
+          selectedSubjectId: undefined,
+          colorAdjustments: { ...DEFAULT_COLOR_ADJUSTMENTS },
+          status: 'error',
+          errorMessage,
+          activeVariant: 'under200kb',
+        };
+        setPhotos((prev) => [...prev, errorItem]);
+      }
     }
   };
 
-  const processNewPhoto = async (id: string, file: File) => {
-    try {
-      // 1. Validation & HEIC decoding & Image loading
-      const validated = await validateAndLoadImage(file);
-
-      // 2. Client-side subject & clothing detection
-      const detection = detectSubjectsAndSuggestCrop(validated.imageElement);
-
-      const initialCrop = detection.suggestedCrop;
-      const primarySubj = detection.subjects.find((s) => s.isPrimary);
-
-      // Update photo state to ready
-      setPhotos((prev) =>
-        prev.map((p) => {
-          if (p.id !== id) return p;
-          return {
-            ...p,
-            status: 'rendering',
-            imageElement: validated.imageElement,
-            objectUrl: validated.objectUrl,
-            originalWidth: validated.width,
-            originalHeight: validated.height,
-            detectionResult: detection,
-            selectedSubjectId: primarySubj?.id,
-            cropRect: initialCrop,
-          };
-        })
-      );
-
-      // 3. Initial pipeline execution (crop, colors, 200KB compression)
-      triggerPipelineRender(id);
-    } catch (err: any) {
-      console.error('Error processing photo:', err);
-      setPhotos((prev) =>
-        prev.map((p) => {
-          if (p.id !== id) return p;
-          return {
-            ...p,
-            status: 'error',
-            errorMessage: err.message || 'خطا در بارگذاری تصویر',
-          };
-        })
-      );
-    }
-  };
-
-  // Re-run pipeline with debounce when crop, colors or background change
-  const triggerPipelineRender = useCallback((photoId: string) => {
-    if (renderTimeoutRef.current[photoId]) {
-      window.clearTimeout(renderTimeoutRef.current[photoId]);
+  const triggerPipelineRender = useCallback((id: string, overridePhoto?: PhotoItem) => {
+    if (renderTimeoutRef.current[id]) {
+      window.clearTimeout(renderTimeoutRef.current[id]);
     }
 
-    renderTimeoutRef.current[photoId] = window.setTimeout(async () => {
-      setPhotos((currentPhotos) => {
-        const item = currentPhotos.find((p) => p.id === photoId);
-        if (!item || !item.imageElement) return currentPhotos;
+    setPhotos((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: 'rendering' } : p))
+    );
 
-        executeRenderPipeline(item)
-          .then((exportResult) => {
-            setPhotos((latest) =>
-              latest.map((p) => {
-                if (p.id !== photoId) return p;
-                if (p.exportResult) {
-                  try {
-                    if (p.exportResult.primary?.dataUrl) {
-                      URL.revokeObjectURL(p.exportResult.primary.dataUrl);
-                    }
-                    if (p.exportResult.secondary?.dataUrl) {
-                      URL.revokeObjectURL(p.exportResult.secondary.dataUrl);
-                    }
-                  } catch {
-                    // Ignore
-                  }
-                }
-                return {
-                  ...p,
-                  status: 'ready',
-                  exportResult,
-                };
-              })
-            );
-          })
-          .catch((err) => {
-            console.error('Pipeline error:', err);
-          });
+    renderTimeoutRef.current[id] = window.setTimeout(async () => {
+      setPhotos((prev) => {
+        const target = overridePhoto || prev.find((p) => p.id === id);
+        if (!target || !target.imageElement) return prev;
 
-        return currentPhotos;
+        executeRenderPipeline(target).then((result) => {
+          setPhotos((latest) =>
+            latest.map((p) => {
+              if (p.id !== id) return p;
+              return {
+                ...p,
+                exportResult: result,
+                status: 'ready',
+              };
+            })
+          );
+        });
+
+        return prev;
       });
-    }, 250);
+    }, 200);
   }, []);
 
-  // Handlers for adjustments
   const handleCropChange = (newCrop: BoundingBox) => {
     if (!activePhotoId) return;
     setPhotos((prev) =>
@@ -229,7 +202,7 @@ function AppContent() {
         className="hidden"
       />
 
-      {/* Top Bar Contract (1 Row, 3 Zones) */}
+      {/* Top Bar Header */}
       <Header
         onOpenRatioInfo={() => setIsRatioInfoOpen(true)}
         onTriggerUpload={() => fileInputRef.current?.click()}
@@ -239,48 +212,99 @@ function AppContent() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {photos.length === 0 ? (
-          /* Empty State: Dropzone & Sample Fashion Shoots */
+          /* Empty State: Upload Dropzone */
           <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
             <UploadDropzone onFilesSelected={handleFilesSelected} />
           </div>
         ) : (
-          /* Workspace Layout for Laptop Team */
-          <div className="flex-1 flex flex-col lg:flex-row min-h-0 h-full overflow-hidden">
-            {/* 1. Queue Sidebar */}
-            <PhotoQueue
-              photos={photos}
-              activeId={activePhotoId}
-              onSelectPhoto={(id) => setActivePhotoId(id)}
-              onRemovePhoto={handleRemovePhoto}
-              onAddMore={() => fileInputRef.current?.click()}
-            />
-
-            {/* 2. Center: Large Interactive 3:4 Crop Workspace */}
-            {activePhoto ? (
-              <CropWorkspace
-                photo={activePhoto}
-                onCropChange={handleCropChange}
-                onSelectSubject={handleSelectSubject}
-                isComparing={isComparing}
-                workspaceMode={workspaceMode}
-                onToggleMode={setWorkspaceMode}
+          <div className="flex-1 flex flex-col min-h-0 h-full overflow-hidden">
+            {/* DESKTOP LAYOUT (Screen size >= lg) */}
+            <div className="hidden lg:flex flex-1 flex-row min-h-0 h-full overflow-hidden">
+              {/* Queue Sidebar */}
+              <PhotoQueue
+                photos={photos}
+                activeId={activePhotoId}
+                onSelectPhoto={(id) => setActivePhotoId(id)}
+                onRemovePhoto={handleRemovePhoto}
+                onAddMore={() => fileInputRef.current?.click()}
               />
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-sm text-neutral-500">
-                یک تصویر را از لیست انتخاب فرمایید
+
+              {/* Center Workspace */}
+              {activePhoto ? (
+                <CropWorkspace
+                  photo={activePhoto}
+                  onCropChange={handleCropChange}
+                  onSelectSubject={handleSelectSubject}
+                  isComparing={isComparing}
+                  workspaceMode={workspaceMode}
+                  onToggleMode={setWorkspaceMode}
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-sm text-neutral-500">
+                  یک تصویر را از لیست انتخاب فرمایید
+                </div>
+              )}
+
+              {/* Adjustments Panel */}
+              {activePhoto && (
+                <AdjustmentsPanel
+                  photo={activePhoto}
+                  onUpdateColors={handleUpdateColors}
+                  onSelectVariant={handleSelectVariant}
+                  onToggleCompare={setIsComparing}
+                  isComparing={isComparing}
+                />
+              )}
+            </div>
+
+            {/* MOBILE & TABLET LAYOUT (Screen size < lg) */}
+            <div className="flex lg:hidden flex-1 flex-col min-h-0 h-full relative overflow-hidden">
+              {/* Top Photo Strip for mobile */}
+              <MobilePhotoStrip
+                photos={photos}
+                activeId={activePhotoId}
+                onSelectPhoto={(id) => setActivePhotoId(id)}
+                onRemovePhoto={handleRemovePhoto}
+                onAddMore={() => fileInputRef.current?.click()}
+              />
+
+              {/* Mobile Main Canvas Viewport */}
+              <div className="flex-1 min-h-0 relative overflow-hidden flex flex-col">
+                {activePhoto ? (
+                  <CropWorkspace
+                    photo={activePhoto}
+                    onCropChange={handleCropChange}
+                    onSelectSubject={handleSelectSubject}
+                    isComparing={isComparing}
+                    workspaceMode={workspaceMode}
+                    onToggleMode={setWorkspaceMode}
+                  />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-sm text-neutral-500">
+                    تصویری انتخاب نشده است
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* 3. Adjustments and WebP Export Panel */}
-            {activePhoto && (
-              <AdjustmentsPanel
-                photo={activePhoto}
-                onUpdateColors={handleUpdateColors}
-                onSelectVariant={handleSelectVariant}
-                onToggleCompare={setIsComparing}
-                isComparing={isComparing}
-              />
-            )}
+              {/* Mobile Bottom Navigation & Controls */}
+              {activePhoto && (
+                <MobileControls
+                  photo={activePhoto}
+                  photos={photos}
+                  onSelectPhoto={(id) => setActivePhotoId(id)}
+                  onRemovePhoto={handleRemovePhoto}
+                  onAddMore={() => fileInputRef.current?.click()}
+                  onUpdateColors={handleUpdateColors}
+                  onSelectVariant={handleSelectVariant}
+                  onToggleCompare={setIsComparing}
+                  isComparing={isComparing}
+                  workspaceMode={workspaceMode}
+                  onToggleMode={setWorkspaceMode}
+                  onCropChange={handleCropChange}
+                  onSelectSubject={handleSelectSubject}
+                />
+              )}
+            </div>
           </div>
         )}
       </main>

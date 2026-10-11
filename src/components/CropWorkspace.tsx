@@ -684,47 +684,47 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
                 </div>
               </div>
 
-              {/* 4 Corner Handles (NW, NE, SW, SE) */}
+"              {/* 4 Corner Handles (NW, NE, SW, SE) with Touch-Friendly Hit Targets */}
               <div
                 onPointerDown={(e) => handlePointerDown('nw', e)}
-                className="absolute -top-2.5 -left-2.5 w-5 h-5 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nwse-resize shadow-lg hover:scale-125 transition-transform"
+                className="absolute -top-3 -left-3 w-6 h-6 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nwse-resize shadow-lg touch-none active:scale-125 transition-transform flex items-center justify-center z-10"
                 title="تغییر اندازه از گوشه بالا-چپ"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('ne', e)}
-                className="absolute -top-2.5 -right-2.5 w-5 h-5 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nesw-resize shadow-lg hover:scale-125 transition-transform"
+                className="absolute -top-3 -right-3 w-6 h-6 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nesw-resize shadow-lg touch-none active:scale-125 transition-transform flex items-center justify-center z-10"
                 title="تغییر اندازه از گوشه بالا-راست"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('sw', e)}
-                className="absolute -bottom-2.5 -left-2.5 w-5 h-5 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nesw-resize shadow-lg hover:scale-125 transition-transform"
+                className="absolute -bottom-3 -left-3 w-6 h-6 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nesw-resize shadow-lg touch-none active:scale-125 transition-transform flex items-center justify-center z-10"
                 title="تغییر اندازه از گوشه پایین-چپ"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('se', e)}
-                className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nwse-resize shadow-lg hover:scale-125 transition-transform"
+                className="absolute -bottom-3 -right-3 w-6 h-6 bg-sky-400 border-2 border-neutral-900 rounded-md cursor-nwse-resize shadow-lg touch-none active:scale-125 transition-transform flex items-center justify-center z-10"
                 title="تغییر اندازه از گوشه پایین-راست"
               />
 
               {/* 4 Edge Handles (N, S, E, W) */}
               <div
                 onPointerDown={(e) => handlePointerDown('n', e)}
-                className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-3.5 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ns-resize shadow-md hover:scale-110 transition-transform"
+                className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-10 h-4 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ns-resize shadow-md touch-none active:scale-110 transition-transform z-10"
                 title="تغییر اندازه از لبه بالایی"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('s', e)}
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-8 h-3.5 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ns-resize shadow-md hover:scale-110 transition-transform"
+                className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-10 h-4 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ns-resize shadow-md touch-none active:scale-110 transition-transform z-10"
                 title="تغییر اندازه از لبه پایینی"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('e', e)}
-                className="absolute -right-2 top-1/2 -translate-y-1/2 w-3.5 h-8 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ew-resize shadow-md hover:scale-110 transition-transform"
+                className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-4 h-10 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ew-resize shadow-md touch-none active:scale-110 transition-transform z-10"
                 title="تغییر اندازه از لبه راست"
               />
               <div
                 onPointerDown={(e) => handlePointerDown('w', e)}
-                className="absolute -left-2 top-1/2 -translate-y-1/2 w-3.5 h-8 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ew-resize shadow-md hover:scale-110 transition-transform"
+                className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-4 h-10 bg-sky-400 border-2 border-neutral-900 rounded-full cursor-ew-resize shadow-md touch-none active:scale-110 transition-transform z-10"
                 title="تغییر اندازه از لبه چپ"
               />
 
@@ -734,18 +734,8 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
               </div>
             </div>
           )}
-
-          {/* Quick Floating Button to Return to WebP Output Preview */}
-          <button
-            type="button"
-            onClick={() => setMode('preview')}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 px-5 py-2 rounded-xl bg-sky-400 hover:bg-sky-300 active:scale-95 text-neutral-950 font-bold text-xs shadow-xl flex items-center gap-2 border border-sky-500 cursor-pointer transition-all"
-          >
-            <Maximize className="w-4 h-4 text-neutral-950" />
-            <span>مشاهده پیش‌نمایش خروجی WebP</span>
-          </button>
         </div>
-      )}
+      )}"
     </div>
   );
 };
