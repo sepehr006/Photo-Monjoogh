@@ -1,0 +1,6 @@
+{
+  "name": "استودیوی عکس مد ۳:۴ | Fashion Studio",
+  "description": "ابزار تخصصی آماده‌سازی و بهینه‌سازی تصاویر پوشاک و مدل با نسبت پرتره ۳:۴، تشخیص سوژه، روتوش رنگ، حذف پس‌زمینه و فشرده‌سازی WebP کاملاً درون مرورگر.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
