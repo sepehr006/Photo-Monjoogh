@@ -64,7 +64,7 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.avif,image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,image/*"
+          accept=".jpg,.jpeg,.jpe,.jfif,.png,.webp,.heic,.heif,.hif,.avif,.bmp,.gif,image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,image/*"
           onChange={handleFileInputChange}
           className="hidden"
         />
@@ -73,9 +73,12 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
           <UploadCloud className="w-8 h-8" />
         </div>
 
-        <h2 className="text-lg md:text-xl font-bold text-neutral-900 dark:text-white mb-5">
+        <h2 className="text-lg md:text-xl font-bold text-neutral-900 dark:text-white mb-2">
           عکس‌های مدل و پوشاک را اینجا بکشید و رها کنید
         </h2>
+        <p className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 mb-5 max-w-md">
+          انتخاب همزمان چندین عکس با فرمت‌های مشابه یا متفاوت • خروجی نهایی کلیه عکس‌ها WebP کادر ۳:۴
+        </p>
 
         {/* Accepted Formats */}
         <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
@@ -86,7 +89,10 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
             JPG / JPEG
           </span>
           <span className="px-2.5 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-neutral-300 font-semibold">
-            PNG / WebP
+            PNG
+          </span>
+          <span className="px-2.5 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-neutral-300 font-semibold">
+            WebP / AVIF
           </span>
         </div>
       </div>

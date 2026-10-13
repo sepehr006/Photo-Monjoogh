@@ -9,6 +9,7 @@ import { validateAndLoadImage } from './modules/fileValidation';
 import { detectSubjectsAndSuggestCrop } from './modules/subjectDetection';
 import { executeRenderPipeline } from './modules/pipeline';
 import { DEFAULT_COLOR_ADJUSTMENTS } from './modules/colorAdjustment';
+import { downloadPhotosAsZip, generateWebpFilename } from './modules/downloading';
 import { ThemeProvider } from './context/ThemeContext';
 import { Header } from './components/Header';
 import { UploadDropzone } from './components/UploadDropzone';
@@ -26,71 +27,118 @@ function AppContent() {
 
   const [isRatioInfoOpen, setIsRatioInfoOpen] = useState<boolean>(false);
   const [isComparing, setIsComparing] = useState<boolean>(false);
+  const [isZipping, setIsZipping] = useState<boolean>(false);
+  const [, setZipProgress] = useState<number>(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const renderTimeoutRef = useRef<Record<string, number>>({});
 
   // Active photo object
   const activePhoto = photos.find((p) => p.id === activePhotoId) || null;
+  const readyPhotosCount = photos.filter((p) => p.status === 'ready' && p.exportResult).length;
 
-  // Process incoming files
+  // Process a single photo through the validation and pipeline
+  const processSinglePhotoItem = useCallback(async (initialItem: PhotoItem) => {
+    try {
+      const loaded = await validateAndLoadImage(initialItem.file);
+      const detectionResult = detectSubjectsAndSuggestCrop(loaded.imageElement);
+
+      const loadedItem: PhotoItem = {
+        ...initialItem,
+        originalName: loaded.originalName,
+        originalExtension: loaded.originalExtension,
+        fileSizeBytes: loaded.fileSizeBytes,
+        originalWidth: loaded.width,
+        originalHeight: loaded.height,
+        objectUrl: loaded.objectUrl,
+        imageElement: loaded.imageElement,
+        cropRect: detectionResult.suggestedCrop,
+        detectionResult,
+        selectedSubjectId: detectionResult.subjects[0]?.id,
+        status: 'rendering',
+      };
+
+      // Update state with loaded element and dimensions
+      setPhotos((prev) =>
+        prev.map((p) => (p.id === initialItem.id ? loadedItem : p))
+      );
+
+      // Execute render pipeline to WebP
+      const exportResult = await executeRenderPipeline(loadedItem);
+
+      // Mark ready with WebP export result
+      setPhotos((prev) =>
+        prev.map((p) =>
+          p.id === initialItem.id
+            ? { ...p, exportResult, status: 'ready' }
+            : p
+        )
+      );
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'خطا در بارگذاری تصویر';
+      console.error(`Error loading image ${initialItem.file.name}:`, err);
+
+      setPhotos((prev) =>
+        prev.map((p) =>
+          p.id === initialItem.id
+            ? { ...p, status: 'error', errorMessage }
+            : p
+        )
+      );
+    }
+  }, []);
+
+  // Process incoming files (supports multiple files of same or different formats)
   const handleFilesSelected = async (files: File[]) => {
     if (files.length === 0) return;
 
-    for (const file of files) {
-      try {
-        const loaded = await validateAndLoadImage(file);
-        const id = `photo-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-        const detectionResult = detectSubjectsAndSuggestCrop(loaded.imageElement);
+    // 1. Create immediate placeholder items for all files so user sees immediate feedback
+    const baseTimestamp = Date.now();
+    const newItems: PhotoItem[] = files.map((file, idx) => {
+      const ext = file.name.split('.').pop() || '';
+      const id = `photo-${baseTimestamp}-${idx}-${Math.floor(Math.random() * 100000)}`;
+      return {
+        id,
+        file,
+        originalName: file.name,
+        originalExtension: ext,
+        fileSizeBytes: file.size,
+        originalWidth: 0,
+        originalHeight: 0,
+        imageElement: null,
+        objectUrl: '',
+        cropRect: { x: 0, y: 0, width: 0, height: 0 },
+        selectedSubjectId: undefined,
+        colorAdjustments: { ...DEFAULT_COLOR_ADJUSTMENTS },
+        status: 'decoding',
+        activeVariant: 'under200kb',
+      };
+    });
 
-        const newPhotoItem: PhotoItem = {
-          id,
-          file,
-          originalName: loaded.originalName,
-          originalExtension: loaded.originalExtension,
-          fileSizeBytes: loaded.fileSizeBytes,
-          originalWidth: loaded.width,
-          originalHeight: loaded.height,
-          objectUrl: loaded.objectUrl,
-          imageElement: loaded.imageElement,
-          cropRect: detectionResult.suggestedCrop,
-          detectionResult,
-          selectedSubjectId: detectionResult.subjects[0]?.id,
-          colorAdjustments: { ...DEFAULT_COLOR_ADJUSTMENTS },
-          status: 'decoding',
-          activeVariant: 'under200kb',
-        };
+    // Append all items to queue
+    setPhotos((prev) => [...prev, ...newItems]);
 
-        setPhotos((prev) => [...prev, newPhotoItem]);
+    // Select the first newly added photo if nothing was active
+    setActivePhotoId((prevActive) => prevActive || newItems[0]?.id || null);
 
-        if (!activePhotoId) {
-          setActivePhotoId(id);
-        }
+    // 2. Controlled concurrency queue (2 workers) to safely process heavy images without browser crash
+    const queue = [...newItems];
+    const concurrency = 2;
 
-        triggerPipelineRender(id, newPhotoItem);
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'نامشخص';
-        console.error(`Error loading image ${file.name}:`, err);
-        const errorItem: PhotoItem = {
-          id: `error-${Date.now()}-${Math.random()}`,
-          file,
-          originalName: file.name,
-          originalExtension: file.name.split('.').pop() || '',
-          fileSizeBytes: file.size,
-          originalWidth: 0,
-          originalHeight: 0,
-          objectUrl: '',
-          imageElement: null as unknown as HTMLImageElement,
-          cropRect: { x: 0, y: 0, width: 0, height: 0 },
-          selectedSubjectId: undefined,
-          colorAdjustments: { ...DEFAULT_COLOR_ADJUSTMENTS },
-          status: 'error',
-          errorMessage,
-          activeVariant: 'under200kb',
-        };
-        setPhotos((prev) => [...prev, errorItem]);
+    const runWorker = async () => {
+      while (queue.length > 0) {
+        const item = queue.shift();
+        if (!item) break;
+        await processSinglePhotoItem(item);
       }
-    }
+    };
+
+    const workers = Array.from(
+      { length: Math.min(concurrency, queue.length) },
+      () => runWorker()
+    );
+    await Promise.all(workers);
   };
 
   const triggerPipelineRender = useCallback((id: string, overridePhoto?: PhotoItem) => {
@@ -103,26 +151,42 @@ function AppContent() {
     );
 
     renderTimeoutRef.current[id] = window.setTimeout(async () => {
-      setPhotos((prev) => {
-        const target = overridePhoto || prev.find((p) => p.id === id);
-        if (!target || !target.imageElement) return prev;
-
-        executeRenderPipeline(target).then((result) => {
-          setPhotos((latest) =>
-            latest.map((p) => {
-              if (p.id !== id) return p;
-              return {
-                ...p,
-                exportResult: result,
-                status: 'ready',
-              };
-            })
-          );
+      let target: PhotoItem | undefined = overridePhoto;
+      if (!target) {
+        setPhotos((current) => {
+          target = current.find((p) => p.id === id);
+          return current;
         });
+      }
 
-        return prev;
-      });
-    }, 200);
+      if (!target || !target.imageElement) return;
+
+      try {
+        const result = await executeRenderPipeline(target);
+        setPhotos((latest) =>
+          latest.map((p) => {
+            if (p.id !== id) return p;
+            return {
+              ...p,
+              exportResult: result,
+              status: 'ready',
+            };
+          })
+        );
+      } catch (err) {
+        console.error('Pipeline error:', err);
+        setPhotos((latest) =>
+          latest.map((p) => {
+            if (p.id !== id) return p;
+            return {
+              ...p,
+              status: 'error',
+              errorMessage: 'خطا در فشرده‌سازی خروجی WebP',
+            };
+          })
+        );
+      }
+    }, 150);
   }, []);
 
   const handleCropChange = (newCrop: BoundingBox) => {
@@ -130,10 +194,11 @@ function AppContent() {
     setPhotos((prev) =>
       prev.map((p) => {
         if (p.id !== activePhotoId) return p;
-        return { ...p, cropRect: newCrop };
+        const updated = { ...p, cropRect: newCrop };
+        triggerPipelineRender(activePhotoId, updated);
+        return updated;
       })
     );
-    triggerPipelineRender(activePhotoId);
   };
 
   const handleSelectSubject = (subjectId: string) => {
@@ -151,10 +216,11 @@ function AppContent() {
     setPhotos((prev) =>
       prev.map((p) => {
         if (p.id !== activePhotoId) return p;
-        return { ...p, colorAdjustments: newColors };
+        const updated = { ...p, colorAdjustments: newColors };
+        triggerPipelineRender(activePhotoId, updated);
+        return updated;
       })
     );
-    triggerPipelineRender(activePhotoId);
   };
 
   const handleSelectVariant = (variantKey: 'under200kb' | 'highQuality') => {
@@ -185,6 +251,40 @@ function AppContent() {
     });
   };
 
+  const handleDownloadAllWebp = async () => {
+    const readyPhotos = photos.filter(
+      (p) => p.status === 'ready' && p.exportResult
+    );
+    if (readyPhotos.length === 0) return;
+
+    try {
+      setIsZipping(true);
+      setZipProgress(0);
+
+      const itemsToZip = readyPhotos.map((p) => {
+        const variant =
+          p.activeVariant === 'highQuality' && p.exportResult?.secondary
+            ? p.exportResult.secondary
+            : p.exportResult!.primary;
+        return {
+          blob: variant.blob,
+          filename: generateWebpFilename(p.originalName),
+        };
+      });
+
+      await downloadPhotosAsZip(
+        itemsToZip,
+        `fashion_photos_webp_${Date.now()}.zip`,
+        (pct) => setZipProgress(pct)
+      );
+    } catch (err) {
+      console.error('Failed to bundle zip:', err);
+    } finally {
+      setIsZipping(false);
+      setZipProgress(0);
+    }
+  };
+
   return (
     <div className="h-screen max-h-screen bg-neutral-100 dark:bg-[#0d0f15] text-neutral-800 dark:text-neutral-100 flex flex-col overflow-hidden font-sans selection:bg-sky-500/20 selection:text-sky-700 dark:selection:text-sky-200 transition-colors duration-200">
       {/* Hidden File Input for header trigger */}
@@ -192,7 +292,7 @@ function AppContent() {
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.avif,image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,image/*"
+        accept=".jpg,.jpeg,.jpe,.jfif,.png,.webp,.heic,.heif,.hif,.avif,.bmp,.gif,image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,image/*"
         onChange={(e) => {
           if (e.target.files && e.target.files.length > 0) {
             handleFilesSelected(Array.from(e.target.files));
@@ -207,6 +307,9 @@ function AppContent() {
         onOpenRatioInfo={() => setIsRatioInfoOpen(true)}
         onTriggerUpload={() => fileInputRef.current?.click()}
         photosCount={photos.length}
+        readyPhotosCount={readyPhotosCount}
+        onDownloadAll={handleDownloadAllWebp}
+        isZipping={isZipping}
       />
 
       {/* Main Content Area */}
@@ -227,6 +330,8 @@ function AppContent() {
                 onSelectPhoto={(id) => setActivePhotoId(id)}
                 onRemovePhoto={handleRemovePhoto}
                 onAddMore={() => fileInputRef.current?.click()}
+                onDownloadAll={handleDownloadAllWebp}
+                isZipping={isZipping}
               />
 
               {/* Center Workspace */}
@@ -302,6 +407,8 @@ function AppContent() {
                   onToggleMode={setWorkspaceMode}
                   onCropChange={handleCropChange}
                   onSelectSubject={handleSelectSubject}
+                  onDownloadAll={handleDownloadAllWebp}
+                  isZipping={isZipping}
                 />
               )}
             </div>

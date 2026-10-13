@@ -29,6 +29,8 @@ import {
   Maximize2,
   User,
   Users,
+  Archive,
+  Loader2,
 } from 'lucide-react';
 import { triggerDownloadBlob, generateWebpFilename } from '../modules/downloading';
 import { DEFAULT_COLOR_ADJUSTMENTS } from '../modules/colorAdjustment';
@@ -49,6 +51,8 @@ interface MobileControlsProps {
   onToggleMode: (mode: 'preview' | 'crop') => void;
   onCropChange: (newCrop: BoundingBox) => void;
   onSelectSubject: (subjectId: string) => void;
+  onDownloadAll?: () => void;
+  isZipping?: boolean;
 }
 
 type MobileTab = 'none' | 'crop' | 'color' | 'export' | 'photos';
@@ -67,12 +71,16 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   onToggleMode,
   onCropChange,
   onSelectSubject,
+  onDownloadAll,
+  isZipping = false,
 }) => {
   const [activeTab, setActiveTab] = useState<MobileTab>('none');
 
   const { colorAdjustments, exportResult, activeVariant } = photo;
   const imgW = photo.originalWidth || 1200;
   const imgH = photo.originalHeight || 1600;
+
+  const readyCount = photos.filter((p) => p.status === 'ready' && p.exportResult).length;
 
   const selectedVariant: ExportVariant | undefined =
     activeVariant === 'highQuality' && exportResult?.secondary
@@ -408,11 +416,32 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
                   type="button"
                   disabled={!selectedVariant}
                   onClick={handleDownload}
-                  className="w-full py-3 px-4 rounded-xl bg-sky-400 hover:bg-sky-300 active:scale-95 text-neutral-950 font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 px-4 rounded-xl bg-sky-400 hover:bg-sky-300 active:scale-95 text-neutral-950 font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Download className="w-4 h-4 text-neutral-950" />
-                  <span>دانلود فایل WebP</span>
+                  <span>دانلود این فایل WebP</span>
                 </button>
+
+                {photos.length > 1 && readyCount > 0 && onDownloadAll && (
+                  <button
+                    type="button"
+                    disabled={isZipping}
+                    onClick={onDownloadAll}
+                    className="w-full py-2.5 px-4 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-700 dark:text-sky-300 font-bold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isZipping ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>در حال ایجاد فایل ZIP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="w-4 h-4" />
+                        <span>دانلود همه تصاویر ({readyCount} فایل WebP)</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             )}
 

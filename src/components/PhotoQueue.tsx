@@ -1,12 +1,12 @@
 /**
  * Photo Queue Component
  * Manages the list of uploaded photos, status indicators, and independent review.
- * Fully supports Day (Light) and Night (Dark) mode with Vazirmatn typography.
+ * Fully supports batch processing status and 1-click WebP batch downloading (ZIP).
  */
 import React from 'react';
 import { PhotoItem } from '../types/image';
 import { formatFileSize, formatDimensions } from '../modules/fileValidation';
-import { Check, Loader2, AlertTriangle, Trash2, Download, Image as ImageIcon } from 'lucide-react';
+import { Check, Loader2, AlertTriangle, Trash2, Download, Image as ImageIcon, Archive } from 'lucide-react';
 import { triggerDownloadBlob, generateWebpFilename } from '../modules/downloading';
 
 interface PhotoQueueProps {
@@ -15,6 +15,8 @@ interface PhotoQueueProps {
   onSelectPhoto: (id: string) => void;
   onRemovePhoto: (id: string) => void;
   onAddMore: () => void;
+  onDownloadAll?: () => void;
+  isZipping?: boolean;
 }
 
 export const PhotoQueue: React.FC<PhotoQueueProps> = ({
@@ -23,8 +25,16 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
   onSelectPhoto,
   onRemovePhoto,
   onAddMore,
+  onDownloadAll,
+  isZipping = false,
 }) => {
   if (photos.length === 0) return null;
+
+  const readyPhotos = photos.filter((p) => p.status === 'ready' && p.exportResult);
+  const processingPhotos = photos.filter(
+    (p) => p.status === 'decoding' || p.status === 'analyzing' || p.status === 'rendering'
+  );
+  const errorPhotos = photos.filter((p) => p.status === 'error');
 
   return (
     <aside className="w-full lg:w-72 shrink-0 bg-white dark:bg-[#12141c] border-b lg:border-b-0 lg:border-l border-neutral-200 dark:border-neutral-800 flex flex-col h-auto lg:h-full min-h-0 transition-colors">
@@ -33,7 +43,8 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
         <div>
           <h3 className="text-sm font-bold text-neutral-900 dark:text-white">صف تصاویر</h3>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-            {photos.length} تصویر بارگذاری شده
+            {photos.length} تصویر
+            {readyPhotos.length > 0 && ` (${readyPhotos.length} آماده WebP)`}
           </p>
         </div>
         <button
@@ -43,6 +54,44 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
           + افزودن عکس
         </button>
       </div>
+
+      {/* Batch Processing / Download Banner */}
+      {photos.length > 1 && (
+        <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/40">
+          {processingPhotos.length > 0 ? (
+            <div className="flex items-center gap-2 text-xs text-sky-600 dark:text-sky-400 font-medium">
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              <span>در حال تبدیل {processingPhotos.length} تصویر به WebP...</span>
+            </div>
+          ) : readyPhotos.length > 0 ? (
+            <button
+              type="button"
+              disabled={isZipping}
+              onClick={onDownloadAll}
+              className="w-full py-2 px-3 rounded-xl bg-sky-400 hover:bg-sky-300 active:scale-95 text-neutral-950 font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {isZipping ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>در حال ساخت فایل ZIP...</span>
+                </>
+              ) : (
+                <>
+                  <Archive className="w-3.5 h-3.5" />
+                  <span>دانلود همه ({readyPhotos.length} فایل WebP)</span>
+                </>
+              )}
+            </button>
+          ) : null}
+
+          {errorPhotos.length > 0 && (
+            <div className="mt-1.5 text-[11px] text-rose-500 dark:text-rose-400 flex items-center gap-1 font-medium">
+              <AlertTriangle className="w-3 h-3 shrink-0" />
+              <span>{errorPhotos.length} تصویر با خطا مواجه شد.</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Queue List */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
@@ -88,6 +137,11 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
                     <Loader2 className="w-4 h-4 animate-spin" />
                   </div>
                 )}
+                {isError && (
+                  <div className="absolute inset-0 bg-rose-950/70 flex items-center justify-center text-rose-300">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                )}
               </div>
 
               {/* Details */}
@@ -100,35 +154,43 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
 
                 <div className="text-[11px] text-neutral-600 dark:text-neutral-400 space-y-0.5">
                   <div className="tabular-nums font-medium">
-                    {formatDimensions(item.originalWidth, item.originalHeight)}
+                    {item.originalWidth > 0
+                      ? formatDimensions(item.originalWidth, item.originalHeight)
+                      : 'در حال خواندن ابعاد...'}
                   </div>
                   <div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400">
                     <span className="tabular-nums font-medium">{formatFileSize(item.fileSizeBytes)}</span>
                     <span aria-hidden="true">·</span>
                     <span className="uppercase text-[10px] font-bold text-neutral-700 dark:text-neutral-300">
-                      {item.originalExtension}
+                      {item.originalExtension || 'IMG'}
                     </span>
                   </div>
                 </div>
 
                 {/* Status indicator tag */}
                 <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
-                  {isReady && (
+                  {isReady && item.exportResult && (
                     <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1 font-bold">
                       <Check className="w-3 h-3" />
-                      آماده دانلود WebP
+                      خروجی WebP ({item.exportResult.primary.sizeKb} KB)
                     </span>
                   )}
-                  {isProcessing && (
+                  {item.status === 'decoding' && (
                     <span className="text-sky-700 dark:text-sky-400 flex items-center gap-1 font-bold">
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      در حال پردازش...
+                      خواندن و استخراج...
+                    </span>
+                  )}
+                  {item.status === 'rendering' && (
+                    <span className="text-sky-700 dark:text-sky-400 flex items-center gap-1 font-bold">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      فشرده‌سازی WebP...
                     </span>
                   )}
                   {isError && (
-                    <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1 font-bold" title={item.errorMessage}>
-                      <AlertTriangle className="w-3 h-3" />
-                      خطا در پردازش
+                    <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1 font-bold line-clamp-1" title={item.errorMessage}>
+                      <AlertTriangle className="w-3 h-3 shrink-0" />
+                      {item.errorMessage || 'خطا در بارگذاری'}
                     </span>
                   )}
                 </div>
@@ -139,7 +201,7 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
                 {isReady && item.exportResult && (
                   <button
                     type="button"
-                    title="دانلود سریع خروجی WebP"
+                    title="دانلود سریع این عکس (WebP)"
                     onClick={(e) => {
                       e.stopPropagation();
                       const variant =

@@ -565,7 +565,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
                 className="px-4 py-1.5 text-xs font-bold rounded-xl bg-sky-400 hover:bg-sky-300 active:scale-95 text-neutral-950 transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5 text-neutral-950" />
-                <span>دانلود فوری فایل WebP</span>
+                <span>دانلود فایل WebP</span>
               </button>
             </div>
           </div>

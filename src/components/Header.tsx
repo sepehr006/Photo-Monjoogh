@@ -1,21 +1,26 @@
 /**
  * Top Navigation Bar adhering to Frontend Design Constitution
- * Strict 1-row, 3-zone contract with Day/Night toggle
+ * Strict 1-row, 3-zone contract with Day/Night toggle and Batch Download
  */
 import React from 'react';
-import { Sparkles, HelpCircle, ShieldCheck, Upload, Sun, Moon } from 'lucide-react';
+import { Upload, Sun, Moon, Download, Loader2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 interface HeaderProps {
   onOpenRatioInfo: () => void;
   onTriggerUpload: () => void;
   photosCount: number;
+  readyPhotosCount?: number;
+  onDownloadAll?: () => void;
+  isZipping?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  onOpenRatioInfo,
   onTriggerUpload,
   photosCount,
+  readyPhotosCount = 0,
+  onDownloadAll,
+  isZipping = false,
 }) => {
   const { theme, toggleTheme } = useTheme();
 
@@ -31,8 +36,31 @@ export const Header: React.FC<HeaderProps> = ({
         </span>
       </div>
 
-      {/* Zone 3: Day/Night Theme Toggle & Primary Action */}
-      <div className="flex items-center gap-2.5">
+      {/* Zone 3: Actions */}
+      <div className="flex items-center gap-2">
+        {/* Batch Download button if multiple photos are ready */}
+        {photosCount > 1 && readyPhotosCount > 0 && onDownloadAll && (
+          <button
+            type="button"
+            disabled={isZipping}
+            onClick={onDownloadAll}
+            className="px-3 py-1.5 text-xs font-bold text-sky-800 dark:text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            title="دانلود همه تصاویر به فرمت WebP (فایل فشرده ZIP)"
+          >
+            {isZipping ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span className="hidden sm:inline">در حال فشرده‌سازی...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-3.5 h-3.5" />
+                <span>دانلود همه WebP ({readyPhotosCount})</span>
+              </>
+            )}
+          </button>
+        )}
+
         {/* Day/Night Toggle Button */}
         <button
           type="button"
@@ -44,12 +72,12 @@ export const Header: React.FC<HeaderProps> = ({
           {theme === 'dark' ? (
             <>
               <Sun className="w-4 h-4 text-sky-400" />
-              <span className="hidden sm:inline font-medium">حالت روز</span>
+              <span className="hidden sm:inline font-medium">روز</span>
             </>
           ) : (
             <>
               <Moon className="w-4 h-4 text-indigo-600" />
-              <span className="hidden sm:inline font-medium">حالت شب</span>
+              <span className="hidden sm:inline font-medium">شب</span>
             </>
           )}
         </button>
