@@ -41,6 +41,7 @@ interface CropWorkspaceProps {
   isComparing?: boolean;
   workspaceMode?: 'preview' | 'crop';
   onToggleMode?: (mode: 'preview' | 'crop') => void;
+  onRetry?: (photoId: string) => void;
 }
 
 type DragMode =
@@ -62,6 +63,7 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
   isComparing,
   workspaceMode = 'preview',
   onToggleMode,
+  onRetry,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -524,6 +526,28 @@ export const CropWorkspace: React.FC<CropWorkspaceProps> = ({
                     {selectedVariant.sizeKb} KB
                   </span>
                 </div>
+              </div>
+            ) : photo.status === 'error' ? (
+              <div className="flex flex-col items-center justify-center text-center p-8 bg-white/90 dark:bg-neutral-900/90 rounded-2xl border border-rose-300 dark:border-rose-900/50 max-w-md shadow-xl my-auto">
+                <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-500 flex items-center justify-center mb-4">
+                  <AlertTriangle className="w-6 h-6 text-rose-500" />
+                </div>
+                <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 mb-2">
+                  خطا در پردازش تصویر
+                </h3>
+                <p className="text-xs text-neutral-600 dark:text-neutral-300 mb-5 leading-relaxed dir-rtl text-center">
+                  {photo.errorMessage || 'فایل قابل خواندن یا رمزگشایی نبود.'}
+                </p>
+                {onRetry && (
+                  <button
+                    type="button"
+                    onClick={() => onRetry(photo.id)}
+                    className="px-5 py-2.5 rounded-xl bg-sky-400 hover:bg-sky-300 text-neutral-950 font-bold text-xs flex items-center gap-2 cursor-pointer shadow-md active:scale-95 transition-all"
+                  >
+                    <RotateCcw className="w-4 h-4 text-neutral-950" />
+                    <span>تلاش مجدد پردازش</span>
+                  </button>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center text-center p-8 bg-white/80 dark:bg-neutral-900/80 rounded-2xl border border-neutral-300 dark:border-neutral-700">

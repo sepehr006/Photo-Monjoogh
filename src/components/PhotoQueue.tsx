@@ -156,6 +156,8 @@ export const PhotoQueue: React.FC<PhotoQueueProps> = ({
                   <div className="tabular-nums font-medium">
                     {item.originalWidth > 0
                       ? formatDimensions(item.originalWidth, item.originalHeight)
+                      : isError
+                      ? 'خطا در بارگذاری'
                       : 'در حال خواندن ابعاد...'}
                   </div>
                   <div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400">

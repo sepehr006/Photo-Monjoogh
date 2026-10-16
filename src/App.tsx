@@ -251,6 +251,24 @@ function AppContent() {
     });
   };
 
+  const handleRetryPhoto = useCallback(
+    (photoId: string) => {
+      const target = photos.find((p) => p.id === photoId);
+      if (!target) return;
+
+      setPhotos((prev) =>
+        prev.map((p) =>
+          p.id === photoId
+            ? { ...p, status: 'decoding', errorMessage: undefined }
+            : p
+        )
+      );
+
+      processSinglePhotoItem(target);
+    },
+    [photos, processSinglePhotoItem]
+  );
+
   const handleDownloadAllWebp = async () => {
     const readyPhotos = photos.filter(
       (p) => p.status === 'ready' && p.exportResult
@@ -343,6 +361,7 @@ function AppContent() {
                   isComparing={isComparing}
                   workspaceMode={workspaceMode}
                   onToggleMode={setWorkspaceMode}
+                  onRetry={handleRetryPhoto}
                 />
               ) : (
                 <div className="flex-1 flex items-center justify-center text-sm text-neutral-500">
@@ -383,6 +402,7 @@ function AppContent() {
                     isComparing={isComparing}
                     workspaceMode={workspaceMode}
                     onToggleMode={setWorkspaceMode}
+                    onRetry={handleRetryPhoto}
                   />
                 ) : (
                   <div className="flex-1 flex items-center justify-center text-sm text-neutral-500">

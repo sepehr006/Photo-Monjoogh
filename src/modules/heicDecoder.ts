@@ -1,14 +1,42 @@
 /**
  * HEIC decoding module
  * Decodes iPhone / Apple HEIC & HEIF photos client-side into standard JPEG/PNG blobs.
- * Features multi-tier decoding strategies:
+ * Features 5-tier fail-safe decoding strategies:
  * 1. Native browser hardware decoder (Safari iOS & macOS, browsers with OS-level HEIC codecs)
- * 2. Modern libheif-based engine (heic-to with libheif 1.23+ and libde265, supports iOS 17/18, HEVC, HDR)
- * 3. Bitmap & PNG rendering fallback
- * 4. Auxiliary container / multi-frame fallback via heic2any
+ * 2. High-performance WASM libheif 1.23.5 engine with libde265 (self-contained, works in all origins including GitHub Pages)
+ * 3. Pure JavaScript libheif 1.23.5 fallback (zero WASM dependencies, runs anywhere)
+ * 4. heic-to engine with fallback to bitmap / PNG
+ * 5. heic2any fallback
  */
 import { heicTo } from 'heic-to';
 import heic2any from 'heic2any';
+
+// Cached libheif instances
+let wasmLibheifPromise: Promise<any> | null = null;
+let pureJsLibheifPromise: Promise<any> | null = null;
+
+async function getWasmLibheif(): Promise<any> {
+  if (!wasmLibheifPromise) {
+    wasmLibheifPromise = (async () => {
+      // @ts-expect-error libheif-js module packaging
+      const mod = await import('libheif-js/libheif-wasm/libheif-bundle.mjs');
+      const factory = mod.default || mod;
+      return typeof factory === 'function' ? await factory() : factory;
+    })();
+  }
+  return wasmLibheifPromise;
+}
+
+async function getPureJsLibheif(): Promise<any> {
+  if (!pureJsLibheifPromise) {
+    pureJsLibheifPromise = (async () => {
+      // @ts-expect-error libheif-js module packaging
+      const mod = await import('libheif-js');
+      return mod.default || mod;
+    })();
+  }
+  return pureJsLibheifPromise;
+}
 
 /**
  * Fast synchronous check using file name extension and MIME type.
@@ -27,7 +55,7 @@ export function isHeicFile(file: File | Blob, filename?: string): boolean {
 }
 
 /**
- * Deep inspection of the first 32 bytes to identify HEIF / HEIC container ('ftyp' box).
+ * Deep inspection of the first 36 bytes to identify HEIF / HEIC container ('ftyp' box).
  * Useful when an iPhone image was saved without extension, with generic MIME, or renamed to .jpg.
  */
 export async function isHeicBlobAsync(blob: Blob): Promise<boolean> {
@@ -72,17 +100,16 @@ export async function isHeicBlobAsync(blob: Blob): Promise<boolean> {
 }
 
 /**
- * Attempt native browser decoding via createImageBitmap or Image element.
+ * Strategy 1: Native browser decoding via createImageBitmap or Image element.
  * Supported in Safari (iOS & macOS) and browsers with native HEIC codecs.
  */
 async function tryNativeBrowserDecode(file: File | Blob): Promise<Blob | null> {
-  // Ensure the blob has an explicit HEIC MIME type so browser knows to use native HEIC codec
   let candidateBlob = file;
   if (!file.type || file.type === 'application/octet-stream') {
     candidateBlob = new Blob([file], { type: 'image/heic' });
   }
 
-  // Strategy A: createImageBitmap (Hardware accelerated, automatically applies EXIF rotation)
+  // Strategy 1A: createImageBitmap (Hardware accelerated, automatically applies EXIF rotation)
   if (typeof createImageBitmap === 'function') {
     try {
       const bitmap = await createImageBitmap(candidateBlob);
@@ -97,6 +124,8 @@ async function tryNativeBrowserDecode(file: File | Blob): Promise<Blob | null> {
           const blob = await new Promise<Blob | null>((resolve) => {
             canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
           });
+          canvas.width = 1;
+          canvas.height = 1;
           if (blob && blob.size > 0) {
             return blob;
           }
@@ -108,7 +137,7 @@ async function tryNativeBrowserDecode(file: File | Blob): Promise<Blob | null> {
     }
   }
 
-  // Strategy B: Image element with Object URL
+  // Strategy 1B: Image element with Object URL
   try {
     const url = URL.createObjectURL(candidateBlob);
     const img = new Image();
@@ -130,6 +159,8 @@ async function tryNativeBrowserDecode(file: File | Blob): Promise<Blob | null> {
         const blob = await new Promise<Blob | null>((resolve) => {
           canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
         });
+        canvas.width = 1;
+        canvas.height = 1;
         if (blob && blob.size > 0) {
           return blob;
         }
@@ -137,30 +168,91 @@ async function tryNativeBrowserDecode(file: File | Blob): Promise<Blob | null> {
     }
     URL.revokeObjectURL(url);
   } catch {
-    // Native img tag not supported for this file
+    // Native img tag not supported
   }
 
   return null;
 }
 
 /**
- * Main decoding entry point for HEIC / HEIF images.
- * Returns a universally-loadable JPEG or PNG Blob.
+ * Strategy 2 & 3: Decode using libheif instance (WASM or Pure JS)
  */
-export async function decodeHeicToBlob(file: File | Blob): Promise<Blob> {
-  const fileName = file instanceof File ? file.name : 'image.heic';
+async function decodeWithLibheifInstance(libheif: any, arrayBuffer: ArrayBuffer): Promise<Blob> {
+  const decoder = new libheif.HeifDecoder();
+  const data = decoder.decode(arrayBuffer);
 
-  // 1. First, attempt native browser decoding (zero overhead, fast, works on Safari & iOS)
-  try {
-    const nativeBlob = await tryNativeBrowserDecode(file);
-    if (nativeBlob) {
-      return nativeBlob;
-    }
-  } catch (nativeErr) {
-    console.warn('Native HEIC decoding attempt failed:', nativeErr);
+  if (!data || data.length === 0) {
+    throw new Error('تصویری در کانتینر HEIC یافت نشد.');
   }
 
-  // 2. Primary decoder: modern 'heic-to' with updated libheif 1.23+ and libde265 engine
+  try {
+    // Select primary image or highest resolution frame (for Live Photos / burst shots)
+    let targetImage = data.find((img: any) => typeof img.is_primary === 'function' && img.is_primary());
+    if (!targetImage) {
+      targetImage = data.reduce((largest: any, current: any) => {
+        const largestArea = (largest.get_width() || 0) * (largest.get_height() || 0);
+        const currentArea = (current.get_width() || 0) * (current.get_height() || 0);
+        return currentArea > largestArea ? current : largest;
+      }, data[0]);
+    }
+
+    const width = targetImage.get_width();
+    const height = targetImage.get_height();
+
+    if (!width || !height || width <= 0 || height <= 0) {
+      throw new Error(`ابعاد نامعتبر تصویر HEIC: ${width}×${height}`);
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('عدم دسترسی به بوم پردازش تصویر (Canvas 2D)');
+    }
+
+    const imgData = ctx.createImageData(width, height);
+
+    await new Promise<void>((resolve, reject) => {
+      targetImage.display(imgData, (displayData: any) => {
+        if (!displayData) {
+          return reject(new Error('خطا در پردازش داده‌های پیکسلی HEIC'));
+        }
+        resolve();
+      });
+    });
+
+    ctx.putImageData(imgData, 0, 0);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.98);
+    });
+
+    canvas.width = 1;
+    canvas.height = 1;
+
+    if (!blob || blob.size === 0) {
+      throw new Error('خطا در تولید فایل خروجی تصویر');
+    }
+
+    return blob;
+  } finally {
+    data.forEach((img: any) => {
+      try {
+        if (typeof img.free === 'function') {
+          img.free();
+        }
+      } catch {
+        // ignore cleanup error
+      }
+    });
+  }
+}
+
+/**
+ * Strategy 4: Fallback to heic-to package
+ */
+async function tryHeicToDecode(file: File | Blob): Promise<Blob | null> {
   try {
     const converted = await heicTo({
       blob: file,
@@ -170,57 +262,52 @@ export async function decodeHeicToBlob(file: File | Blob): Promise<Blob> {
     if (converted && converted.size > 0) {
       return converted;
     }
-  } catch (heicToErr: unknown) {
-    console.warn('heic-to direct JPEG conversion failed, trying bitmap conversion:', heicToErr);
-
-    // 2b. Try bitmap variant if direct JPEG failed
-    try {
-      const bitmap = await heicTo({
-        blob: file,
-        type: 'bitmap',
-      });
-      if (bitmap && bitmap.width > 0) {
-        const canvas = document.createElement('canvas');
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(bitmap, 0, 0);
-          bitmap.close();
-          const blob = await new Promise<Blob | null>((resolve) => {
-            canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.95);
-          });
-          if (blob && blob.size > 0) {
-            return blob;
-          }
-        }
-        bitmap.close();
-      }
-    } catch (bitmapErr) {
-      console.warn('heic-to bitmap conversion failed, trying PNG:', bitmapErr);
-
-      // 2c. Try PNG output in heic-to
-      try {
-        const pngBlob = await heicTo({
-          blob: file,
-          type: 'image/png',
-        });
-        if (pngBlob && pngBlob.size > 0) {
-          return pngBlob;
-        }
-      } catch (pngErr) {
-        console.warn('heic-to PNG conversion failed:', pngErr);
-      }
-    }
+  } catch (err) {
+    console.warn('heic-to JPEG failed, trying bitmap:', err);
   }
 
-  // 3. Fallback decoder: 'heic2any' (single or multiple items)
+  try {
+    const bitmap = await heicTo({
+      blob: file,
+      type: 'bitmap',
+    });
+    if (bitmap && bitmap.width > 0) {
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(bitmap, 0, 0);
+        bitmap.close();
+        const blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.95);
+        });
+        canvas.width = 1;
+        canvas.height = 1;
+        if (blob && blob.size > 0) {
+          return blob;
+        }
+      }
+      bitmap.close();
+    }
+  } catch (err) {
+    console.warn('heic-to bitmap failed:', err);
+  }
+
+  return null;
+}
+
+/**
+ * Strategy 5: Fallback to heic2any package
+ */
+async function tryHeic2AnyDecode(file: File | Blob): Promise<Blob | null> {
   try {
     const fn = (heic2any as unknown as { default?: typeof heic2any }).default || heic2any;
     const result = await fn({
       blob: file,
       toType: 'image/jpeg',
       quality: 0.95,
+      multiple: true,
     });
 
     if (Array.isArray(result) && result.length > 0) {
@@ -229,32 +316,90 @@ export async function decodeHeicToBlob(file: File | Blob): Promise<Blob> {
     if (result instanceof Blob) {
       return result;
     }
-  } catch (heic2anyErr: unknown) {
-    console.warn('heic2any single item failed, trying multiple items mode:', heic2anyErr);
+  } catch (err) {
+    console.warn('heic2any decode failed:', err);
+  }
 
-    // Try multiple items mode (common for Apple Live Photos or HDR burst files)
+  return null;
+}
+
+/**
+ * Main decoding entry point for HEIC / HEIF images.
+ * Uses 5 resilient tiers to guarantee iPhone photos decode smoothly across all browsers and platforms.
+ */
+export async function decodeHeicToBlob(file: File | Blob): Promise<Blob> {
+  const fileName = file instanceof File ? file.name : 'image.heic';
+
+  // Tier 1: Native browser hardware decoder (Safari iOS & macOS)
+  try {
+    const nativeBlob = await tryNativeBrowserDecode(file);
+    if (nativeBlob) {
+      return nativeBlob;
+    }
+  } catch (nativeErr) {
+    console.warn('Native HEIC decoding attempt failed:', nativeErr);
+  }
+
+  // Pre-load arrayBuffer once for libheif decoders
+  let arrayBuffer: ArrayBuffer | null = null;
+  try {
+    arrayBuffer = await file.arrayBuffer();
+  } catch (bufferErr) {
+    console.warn('Could not read file as arrayBuffer:', bufferErr);
+  }
+
+  // Tier 2: WASM libheif 1.23.5 engine with libde265 (High speed, works everywhere including GitHub Pages)
+  if (arrayBuffer) {
     try {
-      const fn = (heic2any as unknown as { default?: typeof heic2any }).default || heic2any;
-      const multiResult = await fn({
-        blob: file,
-        toType: 'image/jpeg',
-        quality: 0.95,
-        multiple: true,
-      });
-
-      if (Array.isArray(multiResult) && multiResult.length > 0) {
-        return multiResult[0];
+      const wasmLibheif = await getWasmLibheif();
+      if (wasmLibheif) {
+        const wasmBlob = await decodeWithLibheifInstance(wasmLibheif, arrayBuffer);
+        if (wasmBlob && wasmBlob.size > 0) {
+          return wasmBlob;
+        }
       }
-      if (multiResult instanceof Blob) {
-        return multiResult;
-      }
-    } catch (multiErr) {
-      console.warn('heic2any multiple mode also failed:', multiErr);
+    } catch (wasmErr) {
+      console.warn('WASM libheif decode failed, trying pure JS libheif:', wasmErr);
     }
   }
 
-  // If all client-side decoders fail, report a clear error message in Persian
+  // Tier 3: Pure JavaScript libheif 1.23.5 fallback (zero WASM requirements)
+  if (arrayBuffer) {
+    try {
+      const pureJsLibheif = await getPureJsLibheif();
+      if (pureJsLibheif) {
+        const pureBlob = await decodeWithLibheifInstance(pureJsLibheif, arrayBuffer);
+        if (pureBlob && pureBlob.size > 0) {
+          return pureBlob;
+        }
+      }
+    } catch (pureErr) {
+      console.warn('Pure JS libheif decode failed, trying heic-to:', pureErr);
+    }
+  }
+
+  // Tier 4: heic-to decoder
+  try {
+    const heicToBlob = await tryHeicToDecode(file);
+    if (heicToBlob && heicToBlob.size > 0) {
+      return heicToBlob;
+    }
+  } catch (heicToErr) {
+    console.warn('heic-to decode failed:', heicToErr);
+  }
+
+  // Tier 5: heic2any decoder
+  try {
+    const heic2anyBlob = await tryHeic2AnyDecode(file);
+    if (heic2anyBlob && heic2anyBlob.size > 0) {
+      return heic2anyBlob;
+    }
+  } catch (heic2anyErr) {
+    console.warn('heic2any decode failed:', heic2anyErr);
+  }
+
+  // If all decoders fail
   throw new Error(
-    `خطا در رمزگشایی فایل HEIC (${fileName}): این فایل از لایه‌های پیشرفته متحرک (Live Photo) یا فشرده‌سازی غیرمعمول استفاده می‌کند. در آیفون می‌توانید عکس را در گالری با فرمت JPG ذخیره نمایید.`
+    `خطا در رمزگشایی فایل HEIC (${fileName}): لطفاً مطمئن شوید فایل سالم است. همچنین می‌توانید در تنظیمات دوربین آیفون (Formats)، حالت Most Compatible را انتخاب کنید یا عکس را از طریق گالری به فرمت JPG به اشتراک بگذارید.`
   );
 }
